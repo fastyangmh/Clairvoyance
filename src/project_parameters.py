@@ -1,7 +1,6 @@
 # import
 import argparse
-from os.path import abspath, join, basename
-from glob import glob
+from os.path import abspath, join
 import torch
 
 # class
@@ -18,11 +17,11 @@ class ProjectParameters:
         self._parser.add_argument('--task', type=str, choices=['classification', 'detection'],
                                   required=True, help='the task that provided image classification and object detection.')
         self._parser.add_argument(
-            '--data_path', type=str, default='data/Intel_Image_Classification', help='the data path.')
-        self._parser.add_argument('--predefined_dataset', type=str, choices=[
-                                  'mnist', 'cifar10', 'vocd'], help='the predefined dataset that provided the mnist, cifar10, Pascal VOC Detection dataset.')
+            '--data_path', type=str, required=True, help='the data path.')
         self._parser.add_argument('--classes', type=self._str_to_str_list, default=None,
                                   help='the classes of data. if the value equals None will automatically get the classes of data from the train directory of data_path.')
+        self._parser.add_argument('--predefined_dataset', type=str, choices=[
+                                  'mnist', 'cifar10', 'vocd'], help='the predefined dataset that provided the mnist, cifar10, Pascal VOC Detection dataset.')
         self._parser.add_argument('--val_size', type=float, default=0.1,
                                   help='the validation data size used for the predefined task.')
         self._parser.add_argument('--no_cuda', action='store_true', default=False,
@@ -52,23 +51,16 @@ class ProjectParameters:
             return int(s)
 
     def parse(self):
-
+        # parse
         project_parameters = self._parser.parse_args()
 
         # base parameters
         project_parameters.data_path = abspath(project_parameters.data_path)
         if project_parameters.predefined_dataset is not None:
-            project_parameters.data_path = join(project_parameters.data_path.rsplit(
-                '/', 1)[0], project_parameters.predefined_dataset)
-        elif project_parameters.classes is None:
-            project_parameters.classes = {c: idx for idx, c in enumerate(sorted(
-                [basename(c[:-1]) for c in glob(join(project_parameters.data_path, 'train/*/'))]))}
-            project_parameters.num_classes = len(project_parameters.classes)
-            assert project_parameters.num_classes, 'there does not get any classes.'
-        else:
-            project_parameters.classes = {
-                c: idx for idx, c in enumerate(sorted(project_parameters.classes))}
-            project_parameters.num_classes = len(project_parameters.classes)
+            project_parameters.data_path = join(
+                project_parameters.data_path, project_parameters.predefined_dataset)
+        if project_parameters.mode != 'train' and project_parameters.classes is None:
+            assert False, 'please give the classes.'
         project_parameters.use_cuda = torch.cuda.is_available(
         ) and not project_parameters.no_cuda
 
